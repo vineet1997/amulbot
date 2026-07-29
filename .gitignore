@@ -5,3 +5,5 @@ playwright-report/
 test-results/
 web/dist/
 web/.wrangler/
+web/.dev.err.log
+web/.dev.out.log
