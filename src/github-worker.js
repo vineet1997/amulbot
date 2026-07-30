@@ -8,6 +8,12 @@ if (!recordUrl || !workerSecret) throw new Error('Missing AMULBOT_RECORD_URL or 
 const targetsUrl = recordUrl.replace(/amulbot-record-availability(?:\?.*)?$/, 'amulbot-worker-targets');
 if (targetsUrl === recordUrl) throw new Error('AMULBOT_RECORD_URL must point to the amulbot-record-availability function.');
 
+const baselineProducts = [
+  { sku: 'WPCCP03_01', name: 'Amul Chocolate Whey Protein, 34 g | Pack of 30 sachets', product_url: 'https://shop.amul.com/product/amul-chocolate-whey-protein-34-g-or-pack-of-30-sachets' },
+  { sku: 'WPCCP05_02', name: 'Amul Chocolate Whey Protein, 34 g | Pack of 60 sachets', product_url: 'https://shop.amul.com/product/amul-chocolate-whey-protein-34-g-or-pack-of-60-sachets' },
+  { sku: 'WPCCP06_01', name: 'Amul Chocolate Whey Protein, 34 g | Pack of 10 sachets', product_url: 'https://shop.amul.com/product/amul-chocolate-whey-protein-34-g-or-pack-of-10-sachets' },
+];
+
 async function getTargets() {
   const response = await fetch(targetsUrl, { headers: { 'x-amulbot-worker-secret': workerSecret } });
   if (!response.ok) throw new Error(`Could not load monitoring targets: ${response.status} ${await response.text()}`);
@@ -33,6 +39,11 @@ for (const target of targets) {
   const products = byPincode.get(target.pincode) ?? [];
   if (!products.some((product) => product.sku === target.sku)) products.push(target);
   byPincode.set(target.pincode, products);
+}
+for (const pincode of (process.env.AMULBOT_PINCODES ?? '').split(',').map((value) => value.trim()).filter((value) => /^[1-9]\d{5}$/.test(value))) {
+  const products = byPincode.get(pincode) ?? [];
+  for (const product of baselineProducts) if (!products.some((target) => target.sku === product.sku)) products.push(product);
+  byPincode.set(pincode, products);
 }
 
 const browser = await chromium.launch({ headless: true });
