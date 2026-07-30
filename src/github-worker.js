@@ -1,17 +1,23 @@
 import 'dotenv/config';
 import { chromium } from 'playwright';
 
-const products = [
-  { sku: 'WPCCP03_01', name: 'Amul Chocolate Whey Protein, 34 g | Pack of 30 sachets', url: 'https://shop.amul.com/product/amul-chocolate-whey-protein-34-g-or-pack-of-30-sachets' },
-  { sku: 'WPCCP05_02', name: 'Amul Chocolate Whey Protein, 34 g | Pack of 60 sachets', url: 'https://shop.amul.com/product/amul-chocolate-whey-protein-34-g-or-pack-of-60-sachets' },
-  { sku: 'WPCCP06_01', name: 'Amul Chocolate Whey Protein, 34 g | Pack of 10 sachets', url: 'https://shop.amul.com/product/amul-chocolate-whey-protein-34-g-or-pack-of-10-sachets' },
-];
+const recordUrl = process.env.AMULBOT_RECORD_URL;
+const workerSecret = process.env.AMULBOT_WORKER_SECRET;
+if (!recordUrl || !workerSecret) throw new Error('Missing AMULBOT_RECORD_URL or AMULBOT_WORKER_SECRET.');
 
-const pincodes = (process.env.AMULBOT_PINCODES ?? '').split(',').map((value) => value.trim()).filter((value) => /^[1-9]\d{5}$/.test(value));
-if (!pincodes.length || !process.env.AMULBOT_RECORD_URL || !process.env.AMULBOT_WORKER_SECRET) throw new Error('Missing AMULBOT_PINCODES, AMULBOT_RECORD_URL, or AMULBOT_WORKER_SECRET.');
+const targetsUrl = recordUrl.replace(/amulbot-record-availability(?:\?.*)?$/, 'amulbot-worker-targets');
+if (targetsUrl === recordUrl) throw new Error('AMULBOT_RECORD_URL must point to the amulbot-record-availability function.');
+
+async function getTargets() {
+  const response = await fetch(targetsUrl, { headers: { 'x-amulbot-worker-secret': workerSecret } });
+  if (!response.ok) throw new Error(`Could not load monitoring targets: ${response.status} ${await response.text()}`);
+  const payload = await response.json();
+  if (!Array.isArray(payload.targets)) throw new Error('Worker target response is invalid.');
+  return payload.targets;
+}
 
 async function checkProduct(page, product) {
-  await page.goto(product.url, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+  await page.goto(product.product_url, { waitUntil: 'domcontentloaded', timeout: 45_000 });
   await page.getByRole('heading', { name: product.name, exact: true }).waitFor({ timeout: 30_000 });
   const text = await page.locator('body').innerText();
   const soldOut = /\bSold Out\b/i.test(text) || /\bNotify Me\b/i.test(text);
@@ -20,10 +26,19 @@ async function checkProduct(page, product) {
   return addToCart && !soldOut;
 }
 
+const targets = await getTargets();
+const byPincode = new Map();
+for (const target of targets) {
+  if (!/^[1-9]\d{5}$/.test(target.pincode) || typeof target.sku !== 'string' || typeof target.product_url !== 'string') continue;
+  const products = byPincode.get(target.pincode) ?? [];
+  if (!products.some((product) => product.sku === target.sku)) products.push(target);
+  byPincode.set(target.pincode, products);
+}
+
 const browser = await chromium.launch({ headless: true });
 const checks = [];
 try {
-  for (const pincode of pincodes) {
+  for (const [pincode, products] of byPincode) {
     const context = await browser.newContext({ locale: 'en-IN', userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36' });
     const page = await context.newPage();
     try {
@@ -34,13 +49,19 @@ try {
       await page.getByRole('button', { name: pincode, exact: true }).click();
       await input.waitFor({ state: 'hidden', timeout: 30_000 });
       for (const product of products) {
-        try { checks.push({ sku: product.sku, pincode, available: await checkProduct(page, product), checkedAt: new Date().toISOString() }); }
-        catch (error) { checks.push({ sku: product.sku, pincode, available: false, checkedAt: new Date().toISOString(), detail: String(error) }); }
+        try {
+          const available = await checkProduct(page, product);
+          checks.push({ sku: product.sku, pincode, status: available ? 'available' : 'unavailable', checkedAt: new Date().toISOString() });
+        } catch (error) {
+          checks.push({ sku: product.sku, pincode, status: 'unknown', checkedAt: new Date().toISOString(), detail: String(error) });
+        }
       }
+    } catch (error) {
+      for (const product of products) checks.push({ sku: product.sku, pincode, status: 'unknown', checkedAt: new Date().toISOString(), detail: String(error) });
     } finally { await context.close(); }
   }
 } finally { await browser.close(); }
 
-const response = await fetch(process.env.AMULBOT_RECORD_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-amulbot-worker-secret': process.env.AMULBOT_WORKER_SECRET }, body: JSON.stringify({ checks }) });
+const response = await fetch(recordUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-amulbot-worker-secret': workerSecret }, body: JSON.stringify({ checks }) });
 if (!response.ok) throw new Error(`AmulBot API failed: ${response.status} ${await response.text()}`);
 console.log(JSON.stringify({ checks, result: await response.json() }));
