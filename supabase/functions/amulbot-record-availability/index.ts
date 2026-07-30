@@ -5,7 +5,15 @@ const TELEGRAM_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
 
 function dbHeaders(write = false) { return { apikey: SERVICE_KEY, authorization: `Bearer ${SERVICE_KEY}`, ...(write ? { "Content-Profile": "amulbot" } : { "Accept-Profile": "amulbot" }), "Content-Type": "application/json" }; }
 async function jsonOrThrow(response: Response, operation: string) { const body = await response.text(); if (!response.ok) throw new Error(`${operation} failed (${response.status}): ${body}`); return body ? JSON.parse(body) : null; }
-async function sendTelegram(chatId: number, text: string) { const result = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }) }); return result.ok ? await result.json() : null; }
+async function sendTelegram(chatId: number, text: string, feedbackId?: string) {
+  const reply_markup = feedbackId ? { inline_keyboard: [[
+    { text: "Caught it ✅", callback_data: `c:${feedbackId}` },
+    { text: "Missed it 💔", callback_data: `m:${feedbackId}` },
+    { text: "Stock was wrong", callback_data: `w:${feedbackId}` },
+  ]] } : undefined;
+  const result = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true, reply_markup }) });
+  return result.ok ? await result.json() : null;
+}
 
 Deno.serve(async (request) => {
   if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -29,7 +37,7 @@ Deno.serve(async (request) => {
       const activeAlerts = await jsonOrThrow(await fetch(`${PROJECT_URL}/rest/v1/alerts?product_sku=eq.${encodeURIComponent(check.sku)}&pincode=eq.${check.pincode}&status=eq.active&select=id,telegram_chat_id,products(name,product_url)`, { headers: dbHeaders() }), "Read active alerts");
       for (const alert of activeAlerts) {
         const product = Array.isArray(alert.products) ? alert.products[0] : alert.products;
-        const result = await sendTelegram(alert.telegram_chat_id, `AmulBot signal: ${product?.name ?? check.sku} was confirmed available for pincode ${check.pincode} at ${new Date(checkedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}.\n\nOrder now: ${product?.product_url ?? "https://shop.amul.com"}`);
+        const result = await sendTelegram(alert.telegram_chat_id, `AmulBot signal: ${product?.name ?? check.sku} was confirmed available for pincode ${check.pincode} at ${new Date(checkedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}.\n\nOrder now: ${product?.product_url ?? "https://shop.amul.com"}\n\nDid you catch it?`, alert.id);
         await jsonOrThrow(await fetch(`${PROJECT_URL}/rest/v1/notifications`, { method: "POST", headers: dbHeaders(true), body: JSON.stringify({ alert_id: alert.id, availability_check_at: checkedAt, status: result ? "sent" : "failed", telegram_message_id: result?.result?.message_id ?? null }) }), "Record notification");
         if (result) { notifications++; await jsonOrThrow(await fetch(`${PROJECT_URL}/rest/v1/alerts?id=eq.${alert.id}`, { method: "PATCH", headers: dbHeaders(true), body: JSON.stringify({ last_notified_at: new Date().toISOString() }) }), "Update alert"); }
       }

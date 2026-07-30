@@ -46,6 +46,8 @@ Alerts are table stakes. The differentiator is reliable, transparent availabilit
 - `Caught it`, `Missed it`, and `Stock was wrong` feedback.
 - City/region-level, anonymous catch activity and a share action.
 
+**Implementation note (July 2026):** Telegram catch feedback and an anonymous recent-catches feed are the first Phase 1 pieces. Feedback stores the outcome, SKU, and pincode needed to improve the product, but never publishes a user identity or exact pincode.
+
 ### Phase 2 — public Stockboard growth
 
 - Shareable, city-level views and SEO-friendly SKU pages.

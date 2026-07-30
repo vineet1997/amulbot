@@ -13,11 +13,12 @@ Deno.serve(async (request) => {
   const pincode = new URL(request.url).searchParams.get("pincode") ?? "";
   if (!/^[1-9]\d{5}$/.test(pincode)) return new Response(JSON.stringify({ error: "A valid Indian pincode is required." }), { status: 400, headers: cors(origin) });
   try {
-    const [products, checks, observations, runs] = await Promise.all([
+    const [products, checks, observations, runs, catches] = await Promise.all([
       jsonOrThrow(await fetch(`${PROJECT_URL}/rest/v1/products?active=is.true&order=sku&select=sku,name,package_label,product_url,price_inr`, { headers: dbHeaders() }), "Read products"),
       jsonOrThrow(await fetch(`${PROJECT_URL}/rest/v1/availability_checks?pincode=eq.${pincode}&select=product_sku,is_available,checked_at,detail`, { headers: dbHeaders() }), "Read current checks"),
       jsonOrThrow(await fetch(`${PROJECT_URL}/rest/v1/availability_observations?pincode=eq.${pincode}&order=checked_at.desc&limit=42&select=product_sku,status,checked_at`, { headers: dbHeaders() }), "Read observations"),
       jsonOrThrow(await fetch(`${PROJECT_URL}/rest/v1/worker_runs?order=received_at.desc&limit=1&select=received_at,checks_total,unknown_total`, { headers: dbHeaders() }), "Read worker health"),
+      jsonOrThrow(await fetch(`${PROJECT_URL}/rest/v1/catch_feedback?outcome=eq.caught&order=created_at.desc&limit=5&select=product_sku,created_at,products(name)`, { headers: dbHeaders() }), "Read recent catches"),
     ]);
     const checkBySku = new Map(checks.map((check: { product_sku: string }) => [check.product_sku, check]));
     const historyBySku = new Map<string, Array<{ status: string; checked_at: string }>>();
@@ -29,6 +30,10 @@ Deno.serve(async (request) => {
       const status = latest && (!current || new Date(latest.checked_at) >= new Date(current.checked_at)) ? latest.status : current ? (current.is_available ? "available" : "unavailable") : "unknown";
       return { ...product, status, checked_at: latest?.checked_at ?? current?.checked_at ?? null, history: history.slice(0, 7) };
     });
-    return new Response(JSON.stringify({ pincode, items, worker: runs[0] ?? null }), { headers: cors(origin) });
+    const recent_catches = catches.map((catchEvent: { product_sku: string; created_at: string; products: { name: string } | { name: string }[] | null }) => ({
+      product_name: Array.isArray(catchEvent.products) ? catchEvent.products[0]?.name ?? catchEvent.product_sku : catchEvent.products?.name ?? catchEvent.product_sku,
+      created_at: catchEvent.created_at,
+    }));
+    return new Response(JSON.stringify({ pincode, items, worker: runs[0] ?? null, recent_catches }), { headers: cors(origin) });
   } catch (error) { console.error("amulbot-stockboard", error); return new Response(JSON.stringify({ error: "Stockboard is temporarily unavailable." }), { status: 500, headers: cors(origin) }); }
 });
