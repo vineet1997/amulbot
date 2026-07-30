@@ -12,12 +12,21 @@ async function recordFeedback(callback: { id: string; data?: string; from?: { id
   const match = callback.data?.match(/^([cmw]):([0-9a-f-]{36})$/i);
   if (!match || !callback.from?.id) return answerCallbackQuery(callback.id, "That feedback link is no longer valid.");
   const outcome = match[1].toLowerCase() === "c" ? "caught" : match[1].toLowerCase() === "m" ? "missed" : "wrong_stock";
-  const alerts = await jsonOrThrow(await fetch(`${PROJECT_URL}/rest/v1/alerts?id=eq.${match[2]}&select=id,telegram_chat_id,product_sku,pincode`, { headers: dbHeaders() }), "Read feedback alert");
-  const [alert] = alerts;
+  const [alert] = await jsonOrThrow(await fetch(`${PROJECT_URL}/rest/v1/alerts?id=eq.${match[2]}&select=id,telegram_chat_id,product_sku,pincode`, { headers: dbHeaders() }), "Read feedback alert");
   if (!alert || Number(alert.telegram_chat_id) !== callback.from.id) return answerCallbackQuery(callback.id, "This feedback belongs to another alert.");
   await jsonOrThrow(await fetch(`${PROJECT_URL}/rest/v1/catch_feedback`, { method: "POST", headers: dbHeaders(true), body: JSON.stringify({ alert_id: alert.id, product_sku: alert.product_sku, pincode: alert.pincode, outcome }) }), "Save feedback");
-  const response = outcome === "caught" ? "Nice catch! You helped make Amulbot better." : outcome === "missed" ? "Logged. We will keep watching." : "Thank you — we will treat this signal carefully.";
-  return answerCallbackQuery(callback.id, response);
+  return answerCallbackQuery(callback.id, outcome === "caught" ? "Nice catch. You helped keep the signal honest." : outcome === "missed" ? "Logged. We will keep watching." : "Thank you — we will treat this signal carefully.");
+}
+
+async function manageAlerts(chatId: number, command: string) {
+  if (command === "/stop") {
+    const stopped = await jsonOrThrow(await fetch(`${PROJECT_URL}/rest/v1/alerts?telegram_chat_id=eq.${chatId}&status=eq.active`, { method: "PATCH", headers: { ...dbHeaders(true), Prefer: "return=representation" }, body: JSON.stringify({ status: "paused" }) }), "Pause alerts");
+    return telegram(chatId, stopped.length ? `Paused ${stopped.length} Amulbot alert${stopped.length === 1 ? "" : "s"}. Create a new alert on amulbot.vercel.app whenever you want back in.` : "You do not have any active Amulbot alerts.");
+  }
+  const alerts = await jsonOrThrow(await fetch(`${PROJECT_URL}/rest/v1/alerts?telegram_chat_id=eq.${chatId}&status=eq.active&select=pincode,products(name,package_label)&order=created_at`, { headers: dbHeaders() }), "Read user alerts");
+  if (!alerts.length) return telegram(chatId, "No active Amulbot alerts right now. Start one at amulbot.vercel.app.");
+  const lines = alerts.map((alert: { pincode: string; products: { name: string; package_label: string } | { name: string; package_label: string }[] | null }) => { const product = Array.isArray(alert.products) ? alert.products[0] : alert.products; return `• ${product?.name ?? "Amul product"} (${product?.package_label ?? ""}) — ${alert.pincode}`; });
+  return telegram(chatId, `Your active Amulbot signals:\n\n${lines.join("\n")}\n\nUse /stop to pause all active alerts.`);
 }
 
 Deno.serve(async (request) => {
@@ -28,15 +37,17 @@ Deno.serve(async (request) => {
     if (update.callback_query) { await recordFeedback(update.callback_query); return new Response("ok"); }
     const message = update.message;
     const chatId = message?.chat?.id;
-    const match = message?.text?.match(/^\/start\s+a_([a-f0-9]{32})$/i);
-    if (!chatId || !match) return new Response("ok");
-    const alertRows = await jsonOrThrow(await fetch(`${PROJECT_URL}/rest/v1/alerts?connection_code=eq.${match[1]}&status=eq.pending&select=id,product_sku,pincode`, { headers: dbHeaders() }), "Read pending alert");
-    const [alert] = alertRows;
+    const text = message?.text?.trim();
+    if (!chatId) return new Response("ok");
+    if (text === "/alerts" || text === "/stop") { await manageAlerts(chatId, text); return new Response("ok"); }
+    const match = text?.match(/^\/start\s+a_([a-f0-9]{32})$/i);
+    if (!match) return new Response("ok");
+    const [alert] = await jsonOrThrow(await fetch(`${PROJECT_URL}/rest/v1/alerts?connection_code=eq.${match[1]}&status=eq.pending&select=id,product_sku,pincode`, { headers: dbHeaders() }), "Read pending alert");
     if (!alert) { await telegram(chatId, "That alert link has expired or was already used. Create a new alert at the website."); return new Response("ok"); }
     await jsonOrThrow(await fetch(`${PROJECT_URL}/rest/v1/telegram_users?on_conflict=chat_id`, { method: "POST", headers: { ...dbHeaders(true), Prefer: "resolution=merge-duplicates" }, body: JSON.stringify({ chat_id: chatId, username: message.from?.username ?? null, first_name: message.from?.first_name ?? null, last_seen_at: new Date().toISOString() }) }), "Save Telegram user");
     const duplicates = await jsonOrThrow(await fetch(`${PROJECT_URL}/rest/v1/alerts?product_sku=eq.${encodeURIComponent(alert.product_sku)}&pincode=eq.${alert.pincode}&telegram_chat_id=eq.${chatId}&status=eq.active&select=id`, { headers: dbHeaders() }), "Read duplicate alerts");
     if (duplicates.length) { await jsonOrThrow(await fetch(`${PROJECT_URL}/rest/v1/alerts?id=eq.${alert.id}`, { method: "PATCH", headers: dbHeaders(true), body: JSON.stringify({ status: "deleted", connection_code: null }) }), "Remove duplicate alert"); await telegram(chatId, `You are already tracking ${alert.product_sku} for ${alert.pincode}.`); }
-    else { await jsonOrThrow(await fetch(`${PROJECT_URL}/rest/v1/alerts?id=eq.${alert.id}`, { method: "PATCH", headers: dbHeaders(true), body: JSON.stringify({ telegram_chat_id: chatId, status: "active", connection_code: null, activated_at: new Date().toISOString() }) }), "Activate alert"); await telegram(chatId, `You are all set. AmulBot will alert you when ${alert.product_sku} is available for ${alert.pincode}.`); }
+    else { await jsonOrThrow(await fetch(`${PROJECT_URL}/rest/v1/alerts?id=eq.${alert.id}`, { method: "PATCH", headers: dbHeaders(true), body: JSON.stringify({ telegram_chat_id: chatId, status: "active", connection_code: null, activated_at: new Date().toISOString() }) }), "Activate alert"); await telegram(chatId, `You are all set. Amulbot will alert you when ${alert.product_sku} is available for ${alert.pincode}. Use /alerts to see signals or /stop to pause them.`); }
     return new Response("ok");
   } catch (error) { console.error("amulbot-telegram-webhook", error); return new Response("ok"); }
 });

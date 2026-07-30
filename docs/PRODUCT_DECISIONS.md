@@ -20,6 +20,7 @@ Alerts are table stakes. The differentiator is reliable, transparent availabilit
 4. **Fun, never manipulative.** Celebrate self-reported catches; do not use false urgency, purchase streaks, or scarcity theatre.
 5. **Privacy-minimal.** We store a Telegram chat ID and pincode for an active alert. Exact pincodes are never published.
 6. **Independent and transparent.** We are not affiliated with Amul and show monitoring freshness/status.
+7. **Fair access, not fandom.** We are on the shopper's side against uncertainty; we do not manufacture urgency, encourage hoarding, or claim special access.
 
 ## Evidence that shaped the product
 
@@ -96,3 +97,5 @@ Alerts are table stakes. The differentiator is reliable, transparent availabilit
 ## Copy guardrails
 
 Say “availability observed at [time]” and “last checked [time]”, not “guaranteed in stock” or “real-time.” Clearly label catches as self-reported. Be playful about the hunt, never about health outcomes or panic buying.
+
+The community is pragmatic rather than a brand cult: affordable protein, short restock windows, and unreliable official alerts create a useful mutual-aid network. Use simple, warm copy such as “Your pincode. Your protein signal.” and “We watch the store. You decide when to buy.” Avoid “VIP,” “exclusive,” “beat everyone,” invented countdowns, or bulk-buying celebration.

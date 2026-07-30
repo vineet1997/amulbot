@@ -28,7 +28,7 @@ Deno.serve(async (request) => {
       const history = historyBySku.get(product.sku) ?? [];
       const latest = history[0];
       const status = latest && (!current || new Date(latest.checked_at) >= new Date(current.checked_at)) ? latest.status : current ? (current.is_available ? "available" : "unavailable") : "unknown";
-      return { ...product, status, checked_at: latest?.checked_at ?? current?.checked_at ?? null, history: history.slice(0, 7) };
+      return { ...product, status, checked_at: latest?.checked_at ?? current?.checked_at ?? null, last_seen_in_stock: history.find((observation) => observation.status === "available")?.checked_at ?? null, history: history.slice(0, 7) };
     });
     const recent_catches = catches.map((catchEvent: { product_sku: string; created_at: string; products: { name: string } | { name: string }[] | null }) => ({
       product_name: Array.isArray(catchEvent.products) ? catchEvent.products[0]?.name ?? catchEvent.product_sku : catchEvent.products?.name ?? catchEvent.product_sku,
