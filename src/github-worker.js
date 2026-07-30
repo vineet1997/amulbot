@@ -9,9 +9,15 @@ const targetsUrl = recordUrl.replace(/amulbot-record-availability(?:\?.*)?$/, 'a
 if (targetsUrl === recordUrl) throw new Error('AMULBOT_RECORD_URL must point to the amulbot-record-availability function.');
 
 const baselineProducts = [
-  { sku: 'WPCCP03_01', name: 'Amul Chocolate Whey Protein, 34 g | Pack of 30 sachets', product_url: 'https://shop.amul.com/product/amul-chocolate-whey-protein-34-g-or-pack-of-30-sachets' },
-  { sku: 'WPCCP05_02', name: 'Amul Chocolate Whey Protein, 34 g | Pack of 60 sachets', product_url: 'https://shop.amul.com/product/amul-chocolate-whey-protein-34-g-or-pack-of-60-sachets' },
-  { sku: 'WPCCP06_01', name: 'Amul Chocolate Whey Protein, 34 g | Pack of 10 sachets', product_url: 'https://shop.amul.com/product/amul-chocolate-whey-protein-34-g-or-pack-of-10-sachets' },
+  { sku: 'WPCCP03_01', name: 'Amul Chocolate Whey Protein, 34 g | Pack of 30 sachets', product_url: 'https://shop.amul.com/en/product/amul-chocolate-whey-protein-34-g-or-pack-of-30-sachets' },
+  { sku: 'WPCCP05_02', name: 'Amul Chocolate Whey Protein, 34 g | Pack of 60 sachets', product_url: 'https://shop.amul.com/en/product/amul-chocolate-whey-protein-34-g-or-pack-of-60-sachets' },
+  { sku: 'WPCCP06_01', name: 'Amul Chocolate Whey Protein Gift Pack, 34 g | Pack of 10 sachets', product_url: 'https://shop.amul.com/en/product/amul-chocolate-whey-protein-gift-pack-34-g-or-pack-of-10-sachets' },
+  { sku: 'WPW32_30', name: 'Amul Whey Protein, 32 g | Pack of 30 Sachets', product_url: 'https://shop.amul.com/en/product/amul-whey-protein-32-g-or-pack-of-30-sachets' },
+  { sku: 'WPW32_60', name: 'Amul Whey Protein, 32 g | Pack of 60 Sachets', product_url: 'https://shop.amul.com/en/product/amul-whey-protein-32-g-or-pack-of-60-sachets' },
+  { sku: 'HPL200_30', name: 'Amul High Protein Plain Lassi, 200 mL | Pack of 30', product_url: 'https://shop.amul.com/en/product/amul-high-protein-plain-lassi-200-ml-or-pack-of-30' },
+  { sku: 'HPR200_30', name: 'Amul High Protein Rose Lassi, 200 mL | Pack of 30', product_url: 'https://shop.amul.com/en/product/amul-high-protein-rose-lassi-200-ml-or-pack-of-30' },
+  { sku: 'HPB200_30', name: 'Amul High Protein Buttermilk, 200 mL | Pack of 30', product_url: 'https://shop.amul.com/en/product/amul-high-protein-buttermilk-200-ml-or-pack-of-30' },
+  { sku: 'HPM250_32', name: 'Amul High Protein Milk, 250 mL | Pack of 32', product_url: 'https://shop.amul.com/en/product/amul-high-protein-milk-250-ml-or-pack-of-32' },
 ];
 
 async function getTargets() {

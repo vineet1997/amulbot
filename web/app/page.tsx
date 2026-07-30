@@ -6,7 +6,13 @@ const STOCKBOARD_URL = "https://tiycurqyfqdcsfrycypm.supabase.co/functions/v1/am
 const products = [
   { sku: "WPCCP03_01", name: "Chocolate Whey Protein", pack: "34 g x 30 sachets", price: "Rs 2,500", tag: "Most tracked" },
   { sku: "WPCCP05_02", name: "Chocolate Whey Protein", pack: "34 g x 60 sachets", price: "Rs 4,500", tag: "Best value" },
-  { sku: "WPCCP06_01", name: "Amul Whey Gift Pack", pack: "34 g x 10 sachets", price: "Rs 920", tag: "Starter pack" },
+  { sku: "WPCCP06_01", name: "Chocolate Whey Gift Pack", pack: "34 g x 10 sachets", price: "Rs 920", tag: "Starter pack" },
+  { sku: "WPW32_30", name: "Unflavoured Whey Protein", pack: "32 g x 30 sachets", price: "Rs 2,400", tag: "Unflavoured" },
+  { sku: "WPW32_60", name: "Unflavoured Whey Protein", pack: "32 g x 60 sachets", price: "Rs 4,200", tag: "Best value" },
+  { sku: "HPL200_30", name: "High Protein Plain Lassi", pack: "200 mL x 30", price: "Rs 900", tag: "15 g protein" },
+  { sku: "HPR200_30", name: "High Protein Rose Lassi", pack: "200 mL x 30", price: "Rs 900", tag: "15 g protein" },
+  { sku: "HPB200_30", name: "High Protein Buttermilk", pack: "200 mL x 30", price: "Rs 900", tag: "Bestseller" },
+  { sku: "HPM250_32", name: "High Protein Milk", pack: "250 mL x 32", price: "Rs 3,520", tag: "20 g protein" },
 ];
 
 type StockItem = { sku: string; status: "available" | "unavailable" | "unknown"; checked_at: string | null; last_seen_in_stock: string | null; history: Array<{ status: "available" | "unavailable" | "unknown"; checked_at: string }> };

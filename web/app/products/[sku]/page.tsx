@@ -4,7 +4,13 @@ import { notFound } from "next/navigation";
 const products = {
   WPCCP03_01: { name: "Amul Chocolate Whey Protein", pack: "34 g × 30 sachets", description: "Keep an honest signal on the 30-sachet Amul Chocolate Whey pack for your delivery pincode." },
   WPCCP05_02: { name: "Amul Chocolate Whey Protein", pack: "34 g × 60 sachets", description: "Keep an honest signal on the 60-sachet Amul Chocolate Whey pack for your delivery pincode." },
-  WPCCP06_01: { name: "Amul Whey Gift Pack", pack: "34 g × 10 sachets", description: "Keep an honest signal on the 10-sachet Amul Whey Gift Pack for your delivery pincode." },
+  WPCCP06_01: { name: "Amul Chocolate Whey Protein Gift Pack", pack: "34 g × 10 sachets", description: "Keep an honest signal on the 10-sachet Amul Chocolate Whey Gift Pack for your delivery pincode." },
+  WPW32_30: { name: "Amul Whey Protein", pack: "32 g × 30 sachets", description: "Keep an honest signal on the 30-sachet unflavoured Amul Whey pack for your delivery pincode." },
+  WPW32_60: { name: "Amul Whey Protein", pack: "32 g × 60 sachets", description: "Keep an honest signal on the 60-sachet unflavoured Amul Whey pack for your delivery pincode." },
+  HPL200_30: { name: "Amul High Protein Plain Lassi", pack: "200 mL × 30", description: "Keep an honest signal on Amul High Protein Plain Lassi for your delivery pincode." },
+  HPR200_30: { name: "Amul High Protein Rose Lassi", pack: "200 mL × 30", description: "Keep an honest signal on Amul High Protein Rose Lassi for your delivery pincode." },
+  HPB200_30: { name: "Amul High Protein Buttermilk", pack: "200 mL × 30", description: "Keep an honest signal on Amul High Protein Buttermilk for your delivery pincode." },
+  HPM250_32: { name: "Amul High Protein Milk", pack: "250 mL × 32", description: "Keep an honest signal on Amul High Protein Milk for your delivery pincode." },
 } as const;
 
 type Props = { params: Promise<{ sku: string }> };
