@@ -21,6 +21,7 @@ export const metadata: Metadata = {
   description: "Know when Amul protein is available at your pincode. Get fast Telegram alerts, live stock history, and direct buy links.",
   applicationName: "Amulbot",
   keywords: ["Amul protein stock", "Amul whey restock", "Amul availability alert", "Amul Telegram alert"],
+  robots: { index: true, follow: true },
   openGraph: {
     type: "website",
     url: "/",

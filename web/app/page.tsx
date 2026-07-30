@@ -14,6 +14,13 @@ const products = [
   { sku: "HPB200_30", name: "High Protein Buttermilk", pack: "200 mL x 30", price: "Rs 900", tag: "Bestseller" },
   { sku: "HPM250_32", name: "High Protein Milk", pack: "250 mL x 32", price: "Rs 3,520", tag: "20 g protein" },
 ];
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Amulbot",
+  url: "https://amulbot.vercel.app",
+  description: "Independent, pincode-level availability signals for Amul protein products.",
+};
 
 type StockItem = { sku: string; status: "available" | "unavailable" | "unknown"; checked_at: string | null; last_seen_in_stock: string | null; history: Array<{ status: "available" | "unavailable" | "unknown"; checked_at: string }> };
 type Stockboard = { items: StockItem[]; worker: { received_at: string; unknown_total: number } | null; recent_catches: Array<{ product_name: string; created_at: string }> };
@@ -71,7 +78,7 @@ export default function Home() {
     finally { setLoading(false); }
   }
 
-  return <main>
+  return <main><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
     <nav className="nav"><a className="brand" href="#top"><span>amul</span>bot</a><div className="nav-links"><a className="quiet-link" href="/radar">Radar</a><a className="quiet-link" href="/reliability">Reliability</a><a className="quiet-link" href="#how-it-works">How it works</a></div></nav>
     <section className="hero" id="top"><div className="eyebrow">INDEPENDENT AMUL PROTEIN AVAILABILITY</div><h1>Your pincode.<br /><em>Your protein signal.</em></h1><p className="hero-copy">We watch the store so you do not have to. Amulbot sends a timestamped Telegram signal when we observe availability for your delivery pincode.</p><div className="hero-stats"><span><b>Observed</b> signals</span><span><b>Direct</b> buy links</span><span><b>No</b> auto-orders</span></div></section>
     <section className="stockboard" aria-labelledby="stockboard-title"><div className="stockboard-top"><div><p className="step">LIVE STOCKBOARD</p><h2 id="stockboard-title">Your protein signal.</h2><p>Observed availability for <strong>{pincode}</strong> — not a stock guarantee.</p></div><label className="board-pincode"><span>Pincode</span><input aria-label="Stockboard pincode" inputMode="numeric" maxLength={6} value={pincode} onChange={(event) => setPincode(event.target.value.replace(/\D/g, ""))} /></label></div>
